@@ -175,3 +175,40 @@ for i = 1:nFrames
         % pause
     end
 end
+
+%%
+% frame A: closed polyline
+frameA = 15;
+coordsA = all_adjusted_pixel{frameA};
+coordsA_closed = [coordsA; coordsA(1,:)];  % polyline from start to end
+
+% plot figure
+figure;
+plot(coordsA_closed(:,1), coordsA_closed(:,2), 'g-o', 'LineWidth', 2)
+axis equal
+set(gca, 'YDir', 'reverse')
+title('Closed polyline')
+
+% frame B: open polyline at points 2 and 3 (inflow)
+frameB = 20;
+coordsB = all_adjusted_pixel{frameB};
+coordsB_open = coordsB(4:23, :);  % segment from point 4 to 23
+
+% plot figure
+figure;
+plot(coordsB_open(:,1), coordsB_open(:,2), 'r-o', 'LineWidth', 2)
+axis equal
+set(gca, 'YDir', 'reverse')
+title('Open polyline at points 2 and 3 (inflow)')
+
+% frame C: open polyline at point 22 (outflow)
+frameC = 5;
+coordsC = all_adjusted_pixel{frameC};
+coordsC_outflow = [coordsC(1:21, :); NaN NaN; coordsC(23:end, :)];  % exclude point 22
+
+% plot figure
+figure;
+plot(coordsC_outflow(:,1), coordsC_outflow(:,2), 'b-o', 'LineWidth', 2);
+axis equal;
+set(gca, 'YDir', 'reverse');
+title('Open polyline at point 22 (outflow)');
