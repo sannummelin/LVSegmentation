@@ -1,59 +1,42 @@
 clearvars;
 clc;
 
+directory = 'D:\San\LVSegmentation';
+
 % load file and skip first 12 lines
-T = readtable('LV-Mask12May2025_14h10m00s_export.csv', 'NumHeaderLines', 12);
+T = readtable(fullfile(directory, 'LV-Mask12May2025_14h10m00s_export.csv'), 'NumHeaderLines', 12);
 
-% number of frames to process
-nFrames = 30;
+% extract token (still nested: cell array of 1x1 cell arrays)
+tokens = regexp(T.Var4, '\[([^\]]+)\]', 'tokens', 'once');
 
-% create cell array to store the time of selected frames
-frames_time = cell(nFrames, 1);
-
-% loop over the 30 rows of the table
-for i = 1:nFrames
-    % load video
-    video = VideoReader('20181130T121536_Bmode_coherent_FIR_Apical 3C_ave-10.mp4');
-    % create time axis where each element corresponds to the time of each frame
-    time_axis = 0:1/video.FrameRate:video.NumFrames/video.FrameRate;
-   
-    % take string from column 4
-    raw_string = T.Var4{i};
-    % remove the first "[" and the last "]"
-    raw_string = raw_string(2:end-1);
-    % convert everything to numbers
-    frame_time = str2double(raw_string);
-    % find the index of the frame closest to the specified time
-    [~, frame_idx] = min(abs(frame_time - time_axis));
-    % store the times for each selected frame in the cell array
-    frames_time{i} = time_axis(frame_idx);
-end
-
-all_times = cell2mat(frames_time);
-% determine automatic start time and end time from cell array
-t_start_auto = min(all_times);
-t_end_auto = max(all_times);
+% flatten to simple cell array of strings
+flat = cellfun(@(c) c{1}, tokens, 'UniformOutput', false);
+frames_time = str2double(flat);
 
 % load video
-video = VideoReader('20181130T121536_Bmode_coherent_FIR_Apical 3C_ave-10.mp4');
+video = VideoReader(fullfile(directory, '20181130T121536_Bmode_coherent_FIR_Apical 3C_ave-10.mp4'));
 % create time axis where each element corresponds to the time of each frame
 time_axis = 0:1/video.FrameRate:video.NumFrames/video.FrameRate;
+
+% determine automatic start time and end time from cell array
+t_start_auto = min(frames_time);
+t_end_auto = max(frames_time);
 
 % find frames closest to automatic start time and end time
 [~, frame_start_idx] = min(abs(time_axis - t_start_auto));
 [~, frame_end_idx] = min(abs(time_axis - t_end_auto));
 
 % load mat-file
-load('20181130T121536_piv.mat');
+load(fullfile(directory, '20181130T121536_piv.mat'), 'vfi', 'bmodes');
 
 % automatically determined start and end frame
 start_frame = frame_start_idx;
 end_frame = frame_end_idx;
 
 % PIV variabelen
-vectors_all = permute(vfi.vectors(:,:,:,[2,1]), [2 1 3 4]); % in vfi, vectors [z x t component] -component [vz vx]
-grid = permute(vfi.grid(:,:,[2,1]), [2 1 3]);               % in vfi.grid [z x component] -component [z x]
-dt = vfi.dt;
+vectors_all = permute(vfi.vectors(:,:,:,[2,1]), [2 1 3 4]);   % in vfi, vectors [z x t component] -component [vz vx]
+grid = permute(vfi.grid(:,:,[2,1]), [2 1 3]);   % in vfi.grid [z x component] -component [z x]
+dt = 1/vfi.frame_rate;   % vfi.dt;
 frame_rate = vfi.frame_rate; 
 mPoly = vfi.mPoly;
 
@@ -108,6 +91,7 @@ struct.in_shape = in_shape;
 struct.out_shape = out_shape;
 struct.extents = extents;
 struct.bounding_box = bounding_box;
+struct.bmodes = bmodes;
 
 % save mat-file
-save('patient18.mat', 'struct');
+save(fullfile(directory, 'patient18_data.mat'), 'struct');
