@@ -212,3 +212,71 @@ plot(coordsC_outflow(:,1), coordsC_outflow(:,2), 'b-o', 'LineWidth', 2);
 axis equal;
 set(gca, 'YDir', 'reverse');
 title('Open polyline at point 22 (outflow)');
+
+%%
+% convert cell array of wall data into a matrix
+wallmat = cell2mat(wall');
+% number of points per frame in the wall data
+num_points = size(wall{1}, 1);
+% total number of segmented frames
+num_segmented_frames = length(wall);
+
+% get frame time values as a vector
+t_ax = cell2mat(frames_time);
+% normalize B-mode time axis to range from 0 to 1
+t_ax_norm = t_ax./t_ax(end);  
+
+% time step between frames in HFR video
+dt_HFR = 0.0081405;
+% define start and end frame indices for HFR video segment
+frame_start = 15;
+frame_end = 109;
+% number of frames in the selected HFR segment
+num_frames = frame_end - frame_start;
+
+% create normalized time axis for HFR video segment
+t_ax_hfr_norm = [0:num_frames-1]./num_frames;
+% calculate start and end times for HFR video segment
+t_start_HFR = frame_start * dt_HFR;
+t_end_HFR = frame_end * dt_HFR;
+
+% generate time vector over HFR segment duration
+t_hfr = linspace(t_start_HFR, t_end_HFR, num_frames)';
+
+% extract all x coordinates from wall and interpolate over hfr time axis
+x_all = cell2mat(cellfun(@(x) x(:, 1), wall, 'UniformOutput', false))';
+x_hfr = interp1(t_ax_norm', x_all, t_ax_hfr_norm, "linear");
+
+% extract all y coordinates from wall and interpolate over hfr time axis
+y_all = cell2mat(cellfun(@(x) x(:, 2), wall, 'UniformOutput', false))';
+y_hfr = interp1(t_ax_norm', y_all, t_ax_hfr_norm, "linear");
+
+% extract all x components of normal vectors and interpolate over hfr time axis
+nx_all = cell2mat(cellfun(@(x) x(:, 3), wall, 'UniformOutput', false))';
+nx_hfr = interp1(t_ax_norm', nx_all, t_ax_hfr_norm, "linear");
+
+% extract all y components of normal vectors and interpolate over hfr time axis
+ny_all = cell2mat(cellfun(@(x) x(:, 4), wall, 'UniformOutput', false))';
+ny_hfr = interp1(t_ax_norm', ny_all, t_ax_hfr_norm, "linear");
+
+% repeat each HFR timestamp for all points in the frame
+t_hfr = repelem(t_hfr, num_points);
+
+% final wall matrix
+new_wall = [t_hfr(:), x_hfr(:), y_hfr(:), nx_hfr(:), ny_hfr(:)];
+
+% show polyline and normal vectors over time
+for i = 1:size(x_hfr,1)
+    if i ==1
+        figure()
+        poly = plot(x_hfr(i,:), y_hfr(i,:), 'b-o', 'LineWidth', 2);
+        hold on
+        norms = quiver(x_hfr(i,:), y_hfr(i,:), nx_hfr(i,:), ny_hfr(i,:), 0.3);
+        axis equal
+    else
+        set(poly, 'XData', x_hfr(i,:), 'YData', y_hfr(i,:))
+        set(norms, 'XData', x_hfr(i,:), 'YData', y_hfr(i,:), 'UData', nx_hfr(i,:), 'VData', ny_hfr(i,:))
+
+    end
+    pause(0.1)
+end
