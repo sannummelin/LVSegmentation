@@ -1,8 +1,13 @@
 clearvars;
 clc;
 
-% load file and skip first 12 lines
+% load CSV-file and skip first 12 lines
 T = readtable('LV-Mask12May2025_14h10m00s_export.csv', 'NumHeaderLines', 12);
+
+% load B-mode video
+video = VideoReader('20181130T121536_Bmode_coherent_FIR_Apical 3C_ave-10.mp4');
+% create time axis where each element corresponds to the time of each frame
+time_axis = 0:1/video.FrameRate:video.NumFrames/video.FrameRate;
 
 % number of frames to process
 nFrames = 30;
@@ -44,11 +49,6 @@ for i = 1:nFrames
     % store the moved pixel coordinates per frame in the cell array
     all_adjusted_pixel{i} = adjusted_pixel;
 
-    % load video
-    video = VideoReader('20181130T121536_Bmode_coherent_FIR_Apical 3C_ave-10.mp4');
-    % create time axis where each element corresponds to the time of each frame
-    time_axis = 0:1/video.FrameRate:video.NumFrames/video.FrameRate;
-   
     % take string from column 4
     raw_string = T.Var4{i};
     % remove the first "[" and the last "]"
@@ -224,16 +224,40 @@ num_segmented_frames = length(wall);
 % get frame time values as a vector
 t_ax = cell2mat(frames_time);
 % normalize B-mode time axis to range from 0 to 1
-t_ax_norm = t_ax./t_ax(end);  
+t_ax_norm = (t_ax-t_ax(1))./(t_ax(end)-t_ax(1));  
 
-% time step between frames in HFR video
-dt_HFR = 0.0081405;
-% define start and end frame indices for HFR video segment
-frame_start = 15;
-frame_end = 109;
+% path to directory
+directory = 'D:\San\LVSegmentation';
+
+% extract token (still nested: cell array of 1x1 cell arrays)
+tokens = regexp(T.Var4, '\[([^\]]+)\]', 'tokens', 'once');
+
+% flatten to simple cell array of strings
+flat = cellfun(@(c) c{1}, tokens, 'UniformOutput', false);
+frames_time = str2double(flat);
+
+% determine automatic start time and end time from cell array
+t_start_auto = min(frames_time);
+t_end_auto = max(frames_time);
+
+% load PIV MAT-file
+load(fullfile(directory, '20181130T121536_piv.mat'), 'vfi', 'bmodes');
+
+% PIV time axis
+time_axis_piv = 0:1/vfi.frame_rate:size(vfi.vectors,3)/vfi.frame_rate;
+
+% calculate time axis scale factor
+tax_sf = time_axis(end)/time_axis_piv(end);
+
+% find frames closest to automatic start time and end time
+[~, frame_start] = min(abs(time_axis_piv*tax_sf - t_start_auto));
+[~, frame_end] = min(abs(time_axis_piv*tax_sf - t_end_auto));
+
 % number of frames in the selected HFR segment
 num_frames = frame_end - frame_start;
 
+% time step between frames in HFR video
+dt_HFR = 0.0081405;
 % create normalized time axis for HFR video segment
 t_ax_hfr_norm = [0:num_frames-1]./num_frames;
 % calculate start and end times for HFR video segment
@@ -245,11 +269,11 @@ t_hfr = linspace(t_start_HFR, t_end_HFR, num_frames)';
 
 % extract all x coordinates from wall and interpolate over hfr time axis
 x_all = cell2mat(cellfun(@(x) x(:, 1), wall, 'UniformOutput', false))';
-x_hfr = interp1(t_ax_norm', x_all, t_ax_hfr_norm, "linear");
+x_hfr = 1e-3.*interp1(t_ax_norm', x_all, t_ax_hfr_norm, "linear");
 
 % extract all y coordinates from wall and interpolate over hfr time axis
 y_all = cell2mat(cellfun(@(x) x(:, 2), wall, 'UniformOutput', false))';
-y_hfr = interp1(t_ax_norm', y_all, t_ax_hfr_norm, "linear");
+y_hfr = 1e-3.*interp1(t_ax_norm', y_all, t_ax_hfr_norm, "linear");
 
 % extract all x components of normal vectors and interpolate over hfr time axis
 nx_all = cell2mat(cellfun(@(x) x(:, 3), wall, 'UniformOutput', false))';
@@ -260,10 +284,13 @@ ny_all = cell2mat(cellfun(@(x) x(:, 4), wall, 'UniformOutput', false))';
 ny_hfr = interp1(t_ax_norm', ny_all, t_ax_hfr_norm, "linear");
 
 % repeat each HFR timestamp for all points in the frame
-t_hfr = repelem(t_hfr, num_points);
+t_hfr = repmat(t_hfr, 1, num_points);
 
 % final wall matrix
-new_wall = [t_hfr(:), x_hfr(:), y_hfr(:), nx_hfr(:), ny_hfr(:)];
+new_wall = cat(3, t_hfr, x_hfr, y_hfr, nx_hfr, ny_hfr);
+
+directory = 'D:\San\LVSegmentation';
+save(fullfile(directory, 'new_wall.mat'), 'new_wall');
 
 % show polyline and normal vectors over time
 for i = 1:size(x_hfr,1)
