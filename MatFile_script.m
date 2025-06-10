@@ -1,9 +1,10 @@
 clearvars;
 clc;
 
+% path to directory
 directory = 'D:\San\LVSegmentation';
 
-% load file and skip first 12 lines
+% load CSV-file and skip first 12 lines
 T = readtable(fullfile(directory, 'LV-Mask12May2025_14h10m00s_export.csv'), 'NumHeaderLines', 12);
 
 % extract token (still nested: cell array of 1x1 cell arrays)
@@ -22,21 +23,22 @@ time_axis = 0:1/video.FrameRate:video.NumFrames/video.FrameRate;
 t_start_auto = min(frames_time);
 t_end_auto = max(frames_time);
 
-% find frames closest to automatic start time and end time
-[~, frame_start_idx] = min(abs(time_axis - t_start_auto));
-[~, frame_end_idx] = min(abs(time_axis - t_end_auto));
-
-% load mat-file
+% load PIV MAT-file
 load(fullfile(directory, '20181130T121536_piv.mat'), 'vfi', 'bmodes');
 
-% automatically determined start and end frame
-start_frame = frame_start_idx;
-end_frame = frame_end_idx;
+% PIV time axis
+time_axis_piv = 0:1/vfi.frame_rate:size(vfi.vectors,3)/vfi.frame_rate;
+% calculate time axis scale factor
+tax_sf = time_axis(end)/time_axis_piv(end);
+
+% find frames closest to automatic start time and end time
+[~, start_frame] = min(abs(time_axis_piv*tax_sf - t_start_auto));
+[~, end_frame] = min(abs(time_axis_piv*tax_sf - t_end_auto));
 
 % PIV variabelen
-vectors_all = permute(vfi.vectors(:,:,:,[2,1]), [2 1 3 4]);   % in vfi, vectors [z x t component] -component [vz vx]
-grid = permute(vfi.grid(:,:,[2,1]), [2 1 3]);   % in vfi.grid [z x component] -component [z x]
-dt = 1/vfi.frame_rate;   % vfi.dt;
+vectors_all = permute(vfi.vectors(:,:,:,[2,1]), [2 1 3 4]); % in vfi, vectors [z x t component] -component [vz vx]
+grid = permute(vfi.grid(:,:,[2,1]), [2 1 3]);               % in vfi.grid [z x component] -component [z x]
+dt = 1/vfi.frame_rate; % vfi.dt;
 frame_rate = vfi.frame_rate; 
 mPoly = vfi.mPoly;
 
@@ -63,12 +65,14 @@ for t = 1:nt
 end
 
 % wall
-if size(mPoly, 1) > 1
-    norm_wall = compute_polygon_normals(mPoly(:,1), mPoly(:,2));
-    wall = single([mPoly norm_wall(1:end-1,:)]);  % (N-1 x 4)
-else
-    wall = single(zeros(0,4));
-end
+% load interpolated wall
+load(fullfile(directory, 'new_wall.mat'), 'new_wall');
+
+% extract time column
+wall_time = new_wall(:,1,1);
+
+% determine number of wall points per frame
+num_wall_points = size(new_wall,2);
 
 % shapes
 in_shape = [nt, ny, nx];
@@ -86,12 +90,12 @@ bounding_box = [min(x_vals(:)), max(x_vals(:)), min(y_vals(:)), max(y_vals(:))];
 struct.tax = tax;
 struct.pos = pos;
 struct.vecs = vecs;
-struct.wall = wall;
+struct.wall = reshape(new_wall, [], 5);
 struct.in_shape = in_shape;
 struct.out_shape = out_shape;
 struct.extents = extents;
 struct.bounding_box = bounding_box;
 struct.bmodes = bmodes;
 
-% save mat-file
+% save MAT-file
 save(fullfile(directory, 'patient18_data.mat'), 'struct');
