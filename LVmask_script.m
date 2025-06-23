@@ -307,14 +307,3 @@ for i = 1:size(x_hfr,1)
     end
     pause(0.1)
 end
-
-%%
-% convert phase to a string array
-phase_array = string(phase);
-
-% find indices of inflow and outflow frames
-inflow_frames = find(phase_array == "Inflow");
-outflow_frames = find(phase_array == "Outflow");
-
-% save MAT-file
-save('inflow_outflow_frames.mat', 'inflow_frames', 'outflow_frames');
