@@ -7,23 +7,23 @@ directory = 'D:\San\LVSegmentation';
 % load CSV-file and skip first 9 lines
 T = readtable(fullfile(directory, 'LV-Mask12May2025_14h10m00s_export.csv'), 'NumHeaderLines', 9, 'Delimiter', ',');
 
-%% Step 1: data cleaning
+% Step 1: data cleaning
 % identify rows where 'spatial_coordinates' is exactly the string '[]'
 isEmptyCoord = strcmp(T.spatial_coordinates, '[]');
 % remove those rows
 T(isEmptyCoord, :) = [];
 
-%% Step 2: extract times
+% Step 2: extract times
 temporal_coordinates = cellfun(@(s) sscanf(s(2:end-1), '%f'), T.temporal_coordinates);
 
-%% Step 3: extract and clean coordinates from the remaining rows
+% Step 3: extract and clean coordinates from the remaining rows
 cleaned_coordinates = cellfun(@(s) sscanf(s(2:end-1), '%f,').', T.spatial_coordinates, 'UniformOutput', false);
 cleaned_coordinates = cellfun(@(v) v(2:end), cleaned_coordinates, 'UniformOutput', false);
 
 % convert each interleaved coordinate vector to an Nx2 matrix
 coordinate_matrices = cellfun(@(v) reshape(v, 2, []).', cleaned_coordinates, 'UniformOutput', false);
 
-%% Step 4: extract labels
+% Step 4: extract labels
 phase = cellfun(@(s) extractBetween(s, ':"', '"}'), T.metadata, 'UniformOutput', false);
 % convert to flat cell array of strings
 phase = vertcat(phase{:});
@@ -93,7 +93,7 @@ for i = 1:numel(adjusted_mm)
     % store the polyline mm coordinates per frame in the cell array
     polyline_mm_all{i} = polyline;
 
-    %% Step 8: compute normals to polyline
+    % Step 8: compute normals to polyline
     % compute normal vectors for polyline_mm and skip NaNs for open polylines
     valid_idx = all(~isnan(polyline), 2);
     % keep only the valid rows 
@@ -109,13 +109,13 @@ for i = 1:numel(adjusted_mm)
     % store normals per frame in the cell array
     normals_all{i} = normals;
 
-    %% Step 9: create a matrix containing the wall polygon with normals per time point
+    % Step 9: create a matrix containing the wall polygon with normals per time point
     % combine coordinates, normals, and time into one matrix
     t = repmat(temporal_coordinates(i), size(polyline,1), 1);
     wall{i} = [polyline, normals, t];
 end
 
-%% Step 10: check that it fits the image
+% Step 10: check that it fits the image
 figure;
 % find the index of the frame closest to the specified time
 [~, frame_idx] = min(abs(temporal_coordinates(1) - time_axis));
@@ -191,7 +191,7 @@ t_ax_vfi_norm = linspace(0,1,size(vectors_all,3));
 t_start_HFR = frame_start_idx * dt;
 t_end_HFR = frame_end_idx * dt;
 
-%% Step 12: interpolate wall
+% Step 12: interpolate wall
 % extract all x coordinates from wall and interpolate over hfr time axis
 x_all = cell2mat(cellfun(@(x) x(:, 1), wall, 'UniformOutput', false))';
 x_hfr = 1e-3.*interp1(t_ax_norm, x_all, t_ax_vfi_norm, "linear");
@@ -216,7 +216,7 @@ t_hfr = repmat(tax, 1, num_points);
 wall_hfr = cat(3, t_hfr, x_hfr, y_hfr, nx_hfr, ny_hfr);
 num_wall_points = size(wall_hfr,2);
 
-%% Step 13: plot to check they are the same
+% Step 13: plot to check they are the same
 figure();
 im = pcolor(bmodes.x.*1e3, bmodes.z.*1e3, bmodes.imagedata(:,:,1));
 shading flat;
@@ -246,7 +246,7 @@ for i = 1:size(wall_hfr,1)
     set(norms_hfr, 'XData', wall_hfr(i,:,2).*1e3, 'YData', wall_hfr(i,:,3).*1e3, ...
                    'UData', wall_hfr(i,:, 4), 'VData', wall_hfr(i,:,5));
     set(quiv_hfr, 'UData', vectors_all(:,:, i,1), 'VData', vectors_all(:,:, i,2));
-    pause(0.1);
+    pause();
 end
 
 %% Final step: save data in MAT-file
