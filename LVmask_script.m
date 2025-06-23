@@ -226,9 +226,6 @@ t_ax = cell2mat(frames_time);
 % normalize B-mode time axis to range from 0 to 1
 t_ax_norm = (t_ax-t_ax(1))./(t_ax(end)-t_ax(1));  
 
-% path to directory
-directory = 'D:\San\LVSegmentation';
-
 % extract token (still nested: cell array of 1x1 cell arrays)
 tokens = regexp(T.Var4, '\[([^\]]+)\]', 'tokens', 'once');
 
@@ -239,6 +236,9 @@ frames_time = str2double(flat);
 % determine automatic start time and end time from cell array
 t_start_auto = min(frames_time);
 t_end_auto = max(frames_time);
+
+% path to directory
+directory = 'D:\San\LVSegmentation';
 
 % load PIV MAT-file
 load(fullfile(directory, '20181130T121536_piv.mat'), 'vfi', 'bmodes');
@@ -307,3 +307,14 @@ for i = 1:size(x_hfr,1)
     end
     pause(0.1)
 end
+
+%%
+% convert phase to a string array
+phase_array = string(phase);
+
+% find indices of inflow and outflow frames
+inflow_frames = find(phase_array == "Inflow");
+outflow_frames = find(phase_array == "Outflow");
+
+% save MAT-file
+save('inflow_outflow_frames.mat', 'inflow_frames', 'outflow_frames');
