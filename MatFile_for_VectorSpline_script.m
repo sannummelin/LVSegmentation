@@ -212,6 +212,12 @@ ny_hfr = interp1(t_ax_norm', ny_all, t_ax_vfi_norm, "linear");
 tax = linspace(t_start_HFR, t_end_HFR, numel(t_ax_vfi_norm))';
 t_hfr = repmat(tax, 1, num_points);
 
+% interpolate phase
+phase_ind = single(strcmp(phase, 'Inflow'));
+phase_ind_hfr = interp1(t_ax_norm', phase_ind, t_ax_vfi_norm, "nearest");
+phase_hfr = repmat("Inflow", size(phase_ind_hfr));
+phase_hfr(phase_ind_hfr==0) = "Outflow";
+
 % final wall matrix
 wall_hfr = cat(3, t_hfr, x_hfr, y_hfr, nx_hfr, ny_hfr);
 num_wall_points = size(wall_hfr,2);
@@ -274,6 +280,7 @@ in_struct.extents = extents;
 in_struct.bounding_box = bounding_box;
 in_struct.bmodes = bmodes;
 in_struct.wall_shape = size(wall_hfr);
+in_struct.phase = phase_hfr;
 
 % save MAT-file
 save(fullfile(directory, 'patient18_variables.mat'), 'in_struct');
