@@ -170,7 +170,8 @@ plot(inflow_length, inflow_smooth, 'b-', 'DisplayName', 'Smoothed');
 title('Inflow Region Velocity Magnitude');
 xlabel('Length (mm)');
 ylabel('Velocity Magnitude (m/s)');
-legend; grid on;
+legend; 
+grid on;
 
 % calculate points along the drawn outflow line
 outflow_line_x = linspace(out_pos(1,1), out_pos(2,1), n_pts);
@@ -185,7 +186,17 @@ plot(outflow_smooth, 'b-', 'DisplayName', 'Smoothed');
 title('Outflow Region Velocity Magnitude');
 xlabel('Length (mm)');
 ylabel('Velocity Magnitude (m/s)');
-legend; grid on;
+legend; 
+grid on;
+
+% RMS (root mean squared)
+% Bereken RMS fout tussen raw en smoothed
+rms_inflow = sqrt(mean((inflow_raw - inflow_smooth).^2, 'omitnan'));
+rms_outflow = sqrt(mean((outflow_raw - outflow_smooth).^2, 'omitnan'));
+
+% Print resultaten
+fprintf('RMS error inflow: %.4f m/s\n', rms_inflow);
+fprintf('RMS error outflow: %.4f m/s\n', rms_outflow);
 
 %%
 % normal vector
