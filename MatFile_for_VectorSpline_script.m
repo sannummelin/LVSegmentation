@@ -151,6 +151,28 @@ for i = 1:numel(temporal_coordinates)
     pause(0.1);
 end
 
+% save figure frames as video
+v = VideoWriter(fullfile(directory, 'wall_with_normals.mp4'), 'MPEG-4');
+v.FrameRate = 10;
+open(v);
+
+for i = 1:numel(temporal_coordinates)
+    [~, frame_idx] = min(abs(temporal_coordinates(i) - time_axis));
+    frame = read(video, frame_idx);
+    frame = imcrop(frame, crop_rect);
+    im.CData = frame;
+    wall_ = wall{i};
+    set(poly, 'XData', wall_(:,1), 'YData', wall_(:,2));
+    set(norms, 'XData', wall_(:,1), 'YData', wall_(:,2), ...
+        'UData', wall_(:,3), 'VData', wall_(:,4));
+    
+    drawnow;
+    frame_out = getframe(gcf); 
+    writeVideo(v, frame_out);
+end
+
+close(v);
+
 %% Step 11: trim PIV data and interpolate wall onto each HFR frame
 vfi_frame_fudge_factor = 14;
 vectors_all = permute(vfi.vectors(:,:,frame_start_idx-vfi_frame_fudge_factor:frame_end_idx-vfi_frame_fudge_factor,[2,1]), [2 1 3 4]);  % in vfi, vectors [z x t component] -component [vz vx]
@@ -252,8 +274,13 @@ for i = 1:size(wall_hfr,1)
     set(norms_hfr, 'XData', wall_hfr(i,:,2).*1e3, 'YData', wall_hfr(i,:,3).*1e3, ...
                    'UData', wall_hfr(i,:, 4), 'VData', wall_hfr(i,:,5));
     set(quiv_hfr, 'UData', vectors_all(:,:, i,1), 'VData', vectors_all(:,:, i,2));
-    pause();
+
+    % save figure frames as video
+    drawnow;
+    frame_out = getframe(gcf);
+    writeVideo(v, frame_out);
 end
+close(v);
 
 %% Final step: save data in MAT-file
 
