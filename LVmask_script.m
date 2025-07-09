@@ -187,7 +187,7 @@ figure;
 plot(coordsA_closed(:,1), coordsA_closed(:,2), 'g-o', 'LineWidth', 2)
 axis equal
 set(gca, 'YDir', 'reverse')
-title('Closed polyline')
+title('Default Polyline')
 
 % frame B: open polyline at points 2 and 3 (inflow)
 frameB = 20;
@@ -199,7 +199,7 @@ figure;
 plot(coordsB_open(:,1), coordsB_open(:,2), 'r-o', 'LineWidth', 2)
 axis equal
 set(gca, 'YDir', 'reverse')
-title('Open polyline at points 2 and 3 (inflow)')
+title('Inflow Polyline')
 
 % frame C: open polyline at point 22 (outflow)
 frameC = 5;
@@ -211,7 +211,7 @@ figure;
 plot(coordsC_outflow(:,1), coordsC_outflow(:,2), 'b-o', 'LineWidth', 2);
 axis equal;
 set(gca, 'YDir', 'reverse');
-title('Open polyline at point 22 (outflow)');
+title('Outflow Polyline');
 
 %%
 % convert cell array of wall data into a matrix
@@ -306,4 +306,30 @@ for i = 1:size(x_hfr,1)
 
     end
     pause(0.1)
+end
+
+%%
+clearvars;
+clc;
+
+% load video
+video = VideoReader('pressure.mp4');
+
+% determine number of frames
+nFrames = floor(video.Duration * video.FrameRate);
+
+% show figure
+figure;
+
+% show frame by frame
+for i = 1:nFrames
+    % read frame
+    frame = read(video, i);
+
+    % show frame
+    imshow(frame);
+    title(['Frame ', num2str(i)]);
+    
+    % pause
+    pause();
 end
