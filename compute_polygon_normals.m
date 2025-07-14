@@ -1,3 +1,4 @@
+%%
 function normals = compute_polygon_normals(x, y)
     % input: x, y - column vectors of polygon vertex coordinates (N x 1)
     % output:normals - (N x 2) matrix of normal vectors at each vertex
