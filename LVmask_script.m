@@ -1,3 +1,4 @@
+%%
 clearvars;
 clc;
 
@@ -306,30 +307,4 @@ for i = 1:size(x_hfr,1)
 
     end
     pause(0.1)
-end
-
-%%
-clearvars;
-clc;
-
-% load video
-video = VideoReader('pressure.mp4');
-
-% determine number of frames
-nFrames = floor(video.Duration * video.FrameRate);
-
-% show figure
-figure;
-
-% show frame by frame
-for i = 1:nFrames
-    % read frame
-    frame = read(video, i);
-
-    % show frame
-    imshow(frame);
-    title(['Frame ', num2str(i)]);
-    
-    % pause
-    pause();
 end
